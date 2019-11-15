@@ -16,6 +16,7 @@ public class Config {
     @DrawableRes int unselectedBackgroundId;
     int orientation = LinearLayout.HORIZONTAL;
     int gravity = Gravity.CENTER;
+    boolean stepsMode = false;
 
     Config() {
     }
@@ -70,6 +71,11 @@ public class Config {
 
         public Builder gravity(int gravity) {
             mConfig.gravity = gravity;
+            return this;
+        }
+
+        public Builder stepsMode(boolean stepsMode) {
+            mConfig.stepsMode = stepsMode;
             return this;
         }
 
