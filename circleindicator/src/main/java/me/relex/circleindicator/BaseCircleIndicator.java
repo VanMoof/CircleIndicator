@@ -30,6 +30,8 @@ class BaseCircleIndicator extends LinearLayout {
     protected Animator mImmediateAnimatorOut;
     protected Animator mImmediateAnimatorIn;
 
+    protected boolean isInStepsMode;
+
     protected int mLastPosition = -1;
 
     @Nullable private IndicatorCreatedListener mIndicatorCreatedListener;
@@ -51,7 +53,7 @@ class BaseCircleIndicator extends LinearLayout {
 
     @TargetApi(Build.VERSION_CODES.LOLLIPOP)
     public BaseCircleIndicator(Context context, AttributeSet attrs, int defStyleAttr,
-            int defStyleRes) {
+                               int defStyleRes) {
         super(context, attrs, defStyleAttr, defStyleRes);
         init(context, attrs);
     }
@@ -88,6 +90,8 @@ class BaseCircleIndicator extends LinearLayout {
         config.unselectedBackgroundId =
                 typedArray.getResourceId(R.styleable.BaseCircleIndicator_ci_drawable_unselected,
                         config.backgroundResId);
+        config.stepsMode =
+                typedArray.getBoolean(R.styleable.BaseCircleIndicator_ci_steps_mode, false);
         config.orientation = typedArray.getInt(R.styleable.BaseCircleIndicator_ci_orientation, -1);
         config.gravity = typedArray.getInt(R.styleable.BaseCircleIndicator_ci_gravity, -1);
         typedArray.recycle();
@@ -118,13 +122,14 @@ class BaseCircleIndicator extends LinearLayout {
 
         setOrientation(config.orientation == VERTICAL ? VERTICAL : HORIZONTAL);
         setGravity(config.gravity >= 0 ? config.gravity : Gravity.CENTER);
+        isInStepsMode = config.stepsMode;
     }
 
     public interface IndicatorCreatedListener {
         /**
          * IndicatorCreatedListener
          *
-         * @param view internal indicator view
+         * @param view     internal indicator view
          * @param position position
          */
         void onIndicatorCreated(View view, int position);
@@ -177,7 +182,7 @@ class BaseCircleIndicator extends LinearLayout {
         View indicator;
         for (int i = 0; i < count; i++) {
             indicator = getChildAt(i);
-            if (currentPosition == i) {
+            if (shouldFillIndicator(currentPosition, i)) {
                 indicator.setBackgroundResource(mIndicatorBackgroundResId);
                 mImmediateAnimatorOut.setTarget(indicator);
                 mImmediateAnimatorOut.start();
@@ -212,6 +217,14 @@ class BaseCircleIndicator extends LinearLayout {
         addView(indicator, params);
     }
 
+    private boolean shouldFillIndicator(int currentPosition, int index) {
+        if (isInStepsMode) {
+            return index <= currentPosition;
+        } else {
+            return index == currentPosition;
+        }
+    }
+
     public void animatePageSelected(int position) {
 
         if (mLastPosition == position) {
@@ -230,7 +243,17 @@ class BaseCircleIndicator extends LinearLayout {
 
         View currentIndicator;
         if (mLastPosition >= 0 && (currentIndicator = getChildAt(mLastPosition)) != null) {
-            currentIndicator.setBackgroundResource(mIndicatorUnselectedBackgroundResId);
+            int bgResId = 0;
+            if (!isInStepsMode) {
+                bgResId = mIndicatorUnselectedBackgroundResId;
+            } else {
+                if (mLastPosition >= position) {
+                    bgResId = mIndicatorUnselectedBackgroundResId;
+                } else {
+                    bgResId = mIndicatorBackgroundResId;
+                }
+            }
+            currentIndicator.setBackgroundResource(bgResId);
             mAnimatorIn.setTarget(currentIndicator);
             mAnimatorIn.start();
         }
@@ -245,7 +268,8 @@ class BaseCircleIndicator extends LinearLayout {
     }
 
     protected class ReverseInterpolator implements Interpolator {
-        @Override public float getInterpolation(float value) {
+        @Override
+        public float getInterpolation(float value) {
             return Math.abs(1.0f - value);
         }
     }
