@@ -12,6 +12,7 @@ import android.view.Gravity;
 import android.view.View;
 import android.view.animation.Interpolator;
 import android.widget.LinearLayout;
+
 import androidx.annotation.Nullable;
 
 class BaseCircleIndicator extends LinearLayout {
@@ -34,7 +35,8 @@ class BaseCircleIndicator extends LinearLayout {
 
     protected int mLastPosition = -1;
 
-    @Nullable private IndicatorCreatedListener mIndicatorCreatedListener;
+    @Nullable
+    private IndicatorCreatedListener mIndicatorCreatedListener;
 
     public BaseCircleIndicator(Context context) {
         super(context);
@@ -89,7 +91,7 @@ class BaseCircleIndicator extends LinearLayout {
                         R.drawable.white_radius);
         config.unselectedBackgroundId =
                 typedArray.getResourceId(R.styleable.BaseCircleIndicator_ci_drawable_unselected,
-                        config.backgroundResId);
+                        R.drawable.red_radius);
         config.stepsMode =
                 typedArray.getBoolean(R.styleable.BaseCircleIndicator_ci_steps_mode, false);
         config.orientation = typedArray.getInt(R.styleable.BaseCircleIndicator_ci_orientation, -1);
@@ -117,7 +119,7 @@ class BaseCircleIndicator extends LinearLayout {
         mIndicatorBackgroundResId =
                 (config.backgroundResId == 0) ? R.drawable.white_radius : config.backgroundResId;
         mIndicatorUnselectedBackgroundResId =
-                (config.unselectedBackgroundId == 0) ? config.backgroundResId
+                (config.unselectedBackgroundId == 0) ? R.drawable.red_radius
                         : config.unselectedBackgroundId;
 
         setOrientation(config.orientation == VERTICAL ? VERTICAL : HORIZONTAL);
@@ -246,14 +248,23 @@ class BaseCircleIndicator extends LinearLayout {
             int bgResId = 0;
             if (!isInStepsMode) {
                 bgResId = mIndicatorUnselectedBackgroundResId;
+                currentIndicator.setBackgroundResource(bgResId);
             } else {
-                if (mLastPosition >= position) {
-                    bgResId = mIndicatorUnselectedBackgroundResId;
-                } else {
-                    bgResId = mIndicatorBackgroundResId;
+                for (int i = 0; i < getChildCount(); i++) {
+                    currentIndicator = getChildAt(i);
+                    if (i > position) {
+                        currentIndicator.setBackgroundResource(mIndicatorUnselectedBackgroundResId);
+                        mImmediateAnimatorIn.setTarget(currentIndicator);
+                        mImmediateAnimatorIn.start();
+                        mImmediateAnimatorIn.end();
+                    } else {
+                        currentIndicator.setBackgroundResource(mIndicatorBackgroundResId);
+                        mImmediateAnimatorOut.setTarget(currentIndicator);
+                        mImmediateAnimatorOut.start();
+                        mImmediateAnimatorOut.end();
+                    }
                 }
             }
-            currentIndicator.setBackgroundResource(bgResId);
 
             if (!isInStepsMode) {
                 mAnimatorIn.setTarget(currentIndicator);
@@ -265,10 +276,18 @@ class BaseCircleIndicator extends LinearLayout {
         if (selectedIndicator != null) {
             selectedIndicator.setBackgroundResource(mIndicatorBackgroundResId);
             if (!isInStepsMode || mLastPosition < position) {
-            mAnimatorOut.setTarget(selectedIndicator);
-            mAnimatorOut.start();
+                mAnimatorOut.setTarget(selectedIndicator);
+                mAnimatorOut.start();
             }
         }
+
+        if (isInStepsMode && position < mLastPosition) {
+            View previousIndicator = getChildAt(position + 1);
+            previousIndicator.setBackgroundResource(mIndicatorUnselectedBackgroundResId);
+            mAnimatorIn.setTarget(previousIndicator);
+            mAnimatorIn.start();
+        }
+
         mLastPosition = position;
     }
 
